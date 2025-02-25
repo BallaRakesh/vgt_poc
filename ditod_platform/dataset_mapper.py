@@ -96,6 +96,7 @@ class DetrDatasetMapper:
     """
 
     def __init__(self, cfg, is_train=True):
+        self.dataset_type = cfg.DATASETS.TRAIN
         if cfg.INPUT.CROP.ENABLED and is_train:
             self.crop_gen = [
                 T.ResizeShortestEdge([400, 500, 600], sample_style="choice"),
@@ -128,9 +129,9 @@ class DetrDatasetMapper:
         dataset_dict = copy.deepcopy(dataset_dict)  # it will be modified by code below
         image = utils.read_image(dataset_dict["file_name"], format=self.img_format)
         utils.check_image_size(dataset_dict, image)
-        
+        name = self.dataset_type[0]
         try:
-            name = dataset_dict["file_name"][0:-4].split('/') 
+            # name = dataset_dict["file_name"][0:-4].split('/') 
             if 'publaynet' in name:
                 root = '/'.join(name[:-2])
                 if name[-2] == 'val':
@@ -147,10 +148,13 @@ class DetrDatasetMapper:
                     sample_inputs = pickle.load(f)
                 input_ids = sample_inputs["input_ids"]
                 bbox_subword_list = sample_inputs["bbox_subword_list"]
+            # this code snippet is edited for picking the right pickle ile for training, 
+            # ex: '/media/gpuadmin/New_volume/krishna/genai_backend/GenAiLocal/jim_ntngai_com/Chunking_model_training_test1/1726053475882/train_images/Certificate_Of_Origin_138_page_2.png' in which pkl is present in a folder parallel to train images
             elif 'D4LA' in name:
-                root = '/'.join(name[:-2])
-                pdf_name = '/'.join(['/VGT_D4LA_grid_pkl'] + name[-1:])
-                with open((root + pdf_name + '.pkl'), "rb") as f:
+                splitted_path = dataset_dict["file_name"].split('/') 
+                filename = splitted_path[-1].split(".png")[0]
+                pkl_filename = "/".join(splitted_path[:-2]) + f"/VGT_D4LA_grid_pkl/{filename}_textAndCoordinates.pkl"
+                with open(pkl_filename, "rb") as f:
                     sample_inputs = pickle.load(f)
                 input_ids = sample_inputs["input_ids"]
                 bbox_subword_list = sample_inputs["bbox_subword_list"]

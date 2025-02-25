@@ -347,10 +347,15 @@ class DefaultPredictor:
             image_shape = image.shape[:2]  # h, w
             image = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
             
-            with open(grid_path, "rb") as f:
-                sample_inputs = pickle.load(f)
+            # Load grid data
+            if isinstance(grid_path, str):  # If grid_path is a path to a pickle file
+                with open(grid_path, "rb") as f:
+                    sample_inputs = pickle.load(f)
+            else:  # If grid_path is already an in-memory grid dictionary
+                sample_inputs = grid_path
             input_ids = sample_inputs["input_ids"]
             bbox_subword_list = sample_inputs["bbox_subword_list"]
+            
                 
             # word bbox
             bbox = []
@@ -434,10 +439,12 @@ class VGTTrainer(TrainerBase):
         data_loader = self.build_train_loader(cfg)
 
         model = create_ddp_model(model, broadcast_buffers=False)
-        self._trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else SimpleTrainer)(
+        # self._trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else SimpleTrainer)(
+        #     model, data_loader, optimizer
+        # )
+        self._trainer = SimpleTrainer(
             model, data_loader, optimizer
         )
-
         self.scheduler = self.build_lr_scheduler(cfg, optimizer)
         self.checkpointer = MyDetectionCheckpointer(
             # Assume you want to save checkpoints together with logs/statistics
